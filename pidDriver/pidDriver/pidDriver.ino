@@ -1,4 +1,5 @@
 #include <PID_v1.h>
+#include <Servo.h>
 #include "Adafruit_BMP085.h"
 
 #include <CD74HC4067.h>
@@ -19,9 +20,11 @@ Servo servo;
 long lastTime = 0;
 long barometerPreviousTime = 0;
 float avgArray[avgSamples];
+float altReading;
 
-float setpoint, input, output;
-float Kp=2, Ki=5, Kd=1;
+double setpoint, input, output;
+double Kp=2, Ki=5, Kd=1;
+float temp;
 
 PID pid(&input, &output, &setpoint, Kp, Ki, Kd, DIRECT);
 
@@ -49,9 +52,9 @@ void setup() {
 
 void writePWM(int value)
 {
-  if (micros() - lastTime > 20000 - delayVal) {
+  if (micros() - lastTime > 20000 - value) {
     lastTime = micros();
-    servo.writeMicroseconds(delayVal);
+    servo.writeMicroseconds(value);
   }
 }
 
@@ -74,7 +77,7 @@ void loop() {
   // put your main code here, to run repeatedly:
   if (millis() - barometerPreviousTime > 1000) {
     temp = bmp.readRawTemperature();
-    previousTime = millis();
+    barometerPreviousTime = millis();
   }
   altReading = bmp.readAltitude(101325, temp);
   avgArray[count++%avgSamples] = altReading;
@@ -83,6 +86,9 @@ void loop() {
     avg += avgArray[i];
   }
   avg /= avgSamples;
+  input = avg;
   pid.Compute();
-
+  if (autoMode) {
+    writePWM(output);
+  }
 }
