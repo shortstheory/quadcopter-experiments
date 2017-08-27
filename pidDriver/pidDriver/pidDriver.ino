@@ -3,6 +3,8 @@
 
 #include <CD74HC4067.h>
 #define gndSamples 100
+#define avgSamples 100
+#define pidSampleTime 20
 
 Adafruit_BMP085 bmp;
 
@@ -15,11 +17,15 @@ const int servoPin = 10;
 
 Servo servo;
 long lastTime = 0;
+long barometerPreviousTime = 0;
+float avgArray[avgSamples];
 
 float setpoint, input, output;
 float Kp=2, Ki=5, Kd=1;
 
 PID pid(&input, &output, &setpoint, Kp, Ki, Kd, DIRECT);
+
+bool autoMode = false;
 
 void setup() {
   Serial.begin(115200);
@@ -36,6 +42,9 @@ void setup() {
   groundAlt /= gndSamples;
   Serial.println(groundAlt);
   mux.channel(0);
+  pid.SetMode(MANUAL);
+  pid.SetOutputLimits(1100, 1900);
+  pid.SetSampleTime(pidSampleTime);
 }
 
 void writePWM(int value)
@@ -46,7 +55,34 @@ void writePWM(int value)
   }
 }
 
+long count = 0;
+
+void autoToggle(float holdAlt)
+{
+  if (!autoMode) {
+    setpoint = holdAlt;
+    mux.channel(1);
+    pid.SetMode(AUTOMATIC);
+  } else {
+    mux.channel(0);
+    pid.SetMode(MANUAL);
+  }
+  //change mode to auto and give it control
+}
+
 void loop() {
   // put your main code here, to run repeatedly:
+  if (millis() - barometerPreviousTime > 1000) {
+    temp = bmp.readRawTemperature();
+    previousTime = millis();
+  }
+  altReading = bmp.readAltitude(101325, temp);
+  avgArray[count++%avgSamples] = altReading;
+  float avg = 0;
+  for (int i = 0; i < avgSamples; i++) {
+    avg += avgArray[i];
+  }
+  avg /= avgSamples;
+  pid.Compute();
 
 }
