@@ -40,7 +40,7 @@ uint16_t temp;
 const int window = 100;
 float x[window];
 
-ExponentialFilter<float> FilteredTemperature(10, 0);
+ExponentialFilter<float> FilteredTemperature(1, 0);
 float altReading;
 void loop() {
  
@@ -57,8 +57,8 @@ void loop() {
     avg += x[i];
   }
   avg /= window; 
-  Serial.print(FilteredTemperature.Current());
-  Serial.print(' ');
+//  Serial.print(FilteredTemperature.Current());
+//  Serial.print(' ');
   Serial.println(avg);
   count++;
 }
