@@ -35,6 +35,8 @@ PID pid(&input, &output, &setpoint, Kp, Ki, Kd, DIRECT);
 
 bool autoMode = true;
 
+int pwm_value;
+
 void setup() {
   Serial.begin(115200);
   if (!bmp.begin(0)) {
@@ -67,6 +69,9 @@ long count = 0;
 
 void autoSwitch(float holdAlt, bool state)
 {
+  if (autoMode == state) {
+    return;
+  }
   autoMode = state;
   if (!autoMode) {
     setpoint = holdAlt;
@@ -81,9 +86,10 @@ void autoSwitch(float holdAlt, bool state)
 
 void checkMode(float holdAlt)
 {
-  int pwm_value = pulseIn(PWM_PIN, HIGH, 16000);
+  pwm_value = pulseIn(PWM_PIN, HIGH, 16000);
   if (pwm_value > 1010) {
     autoSwitch(avg, false);
+//    output = pwm_value;
   } else {
     autoSwitch(avg, true);
   }
@@ -108,11 +114,11 @@ void loop() {
   }
 
 
-  setpoint = groundAlt + 10.0;
+//  setpoint = groundAlt + 10.0;
   
   avg /= avgSamples;
   input = altReading;
-//  checkMode(avg);
+  checkMode(avg);
   pid.Compute();
   if (autoMode) {
     writePWM(output);
@@ -122,5 +128,7 @@ void loop() {
 //    Serial.print(groundAlt);
 //    Serial.print(' ');
 //    Serial.println((output - 1100)/75.0 + 664);
+  } else {
+    writePWM(pwm_value);
   }
 }
